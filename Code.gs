@@ -39,7 +39,8 @@ function handleRequest(e, isPost) {
     var sellerData = sellerSheet.getDataRange().getValues();
     var stockMap = {};
     for (var i = 1; i < sellerData.length; i++) {
-      stockMap[sellerData[i][0]] = {row: i+1, stock: Number(sellerData[i][3])};
+      // columns: itemId, name, price, stock
+      stockMap[sellerData[i][0]] = {row: i+1, stock: Number(sellerData[i][3]), name: sellerData[i][1]};
     }
     var items = order.items || {};
     var insufficient = [];
@@ -47,7 +48,8 @@ function handleRequest(e, isPost) {
       var qty = Number(items[id].qty || 0);
       var s = stockMap[id];
       var available = s ? s.stock : 0;
-      if (qty > available) insufficient.push({itemId: id, requested: qty, available: available});
+      var name = s ? s.name : id;
+      if (qty > available) insufficient.push({itemId: id, name: name, requested: qty, available: available});
     }
     if (insufficient.length > 0) {
       return jsonResponse({error: 'Insufficient stock', details: insufficient});
@@ -58,15 +60,17 @@ function handleRequest(e, isPost) {
     var row = [orderId, now.toISOString(), order.customerName, JSON.stringify(order.items), order.totalAmount, 0, '', false];
     sheet.appendRow(row);
     // update seller stock
+    var updatedStocks = {};
     for (var id2 in items) {
       var qty2 = Number(items[id2].qty || 0);
       var s2 = stockMap[id2];
       if (s2) {
         var newStock = s2.stock - qty2;
         sellerSheet.getRange(s2.row, 4).setValue(newStock);
+        updatedStocks[id2] = {name: s2.name, stock: newStock};
       }
     }
-    return jsonResponse({success:true, orderId: orderId});
+    return jsonResponse({success:true, orderId: orderId, updatedStocks: updatedStocks});
   }
   if (action === 'confirmPayment') {
     var orderId = e.orderId;

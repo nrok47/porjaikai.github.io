@@ -116,7 +116,13 @@
         const order = {customerName, items, totalAmount};
         const res = await App.createOrder(order);
         if(res && res.error){
-          alert('ไม่สำเร็จ: ' + (res.error || 'Unknown'));
+          // Show detailed insufficient stock message when available
+          if(res.error === 'Insufficient stock' && Array.isArray(res.details)){
+            const lines = res.details.map(d => `${d.name || d.itemId}: ขอ ${d.requested}, คงเหลือ ${d.available}`);
+            alert('ไม่สำเร็จ: สินค้าบางรายการสต็อกไม่พอ\n' + lines.join('\n'));
+          } else {
+            alert('ไม่สำเร็จ: ' + (res.error || 'Unknown'));
+          }
           if(res.details) console.log('details', res.details);
           return;
         }

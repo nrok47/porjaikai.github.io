@@ -1,3 +1,55 @@
+/* Menu grid for order page */
+.menu-grid-inner {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 10px;
+}
+.menu-cell {
+	min-width: 0;
+}
+@media (max-width: 600px) {
+	.menu-grid-inner {
+		grid-template-columns: 1fr 1fr;
+		gap: 6px;
+	}
+	.menu-cell img {
+		width: 60px !important;
+		height: 60px !important;
+	}
+}
+/* Simple nav menu */
+.navmenu {
+	display: flex;
+	gap: 12px;
+	background: #fff;
+	border-bottom: 1px solid #eee;
+	padding: 10px 8px;
+	margin-bottom: 8px;
+	position: sticky;
+	top: 0;
+	z-index: 10;
+}
+.navitem {
+	color: #0b69ff;
+	text-decoration: none;
+	font-weight: 500;
+	padding: 6px 10px;
+	border-radius: 6px;
+	transition: background 0.2s;
+}
+.navitem:hover, .navitem.active {
+	background: #eaf2ff;
+}
+@media (max-width: 600px) {
+	.navmenu {
+		gap: 6px;
+		padding: 8px 2vw;
+		font-size: 0.98em;
+	}
+	.navitem {
+		padding: 6px 4px;
+	}
+}
 
 :root {
 	font-family: Inter, system-ui, -apple-system, Roboto, 'Noto Sans', 'Helvetica Neue', Arial;

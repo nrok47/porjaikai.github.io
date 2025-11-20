@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Order — ร้านพอใจขาย</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+  </head>
+  <body>
+    <main class="container">
+      <h1>สั่งซื้อสินค้า</h1>
+      <section class="card">
+        <form id="orderForm">
+          <label>ชื่อลูกค้า <input name="customerName" required></label>
+          <div id="lines">
+            <!-- dynamic order lines -->
+          </div>
+          <button type="button" id="addLine">เพิ่มรายการ</button>
+          <div><strong>รวม:</strong> <span id="orderTotal">0</span> ฿</div>
+          <button type="submit">ส่งคำสั่งซื้อ</button>
+        </form>
+      </section>
+    </main>
+
+    <script src="/assets/app.js"></script>
+    <script>
+      let sellers = [];
+      async function init(){
+        sellers = await App.listSellers();
+        addLine();
+      }
+
+      function addLine(){
+        const idx = document.querySelectorAll('#lines .line').length;
+        const div = document.createElement('div');
+        div.className='line';
+        div.innerHTML = `
+          <select name="itemId">
+            ${sellers.map(s=>`<option value="${s.itemId}" data-price="${s.price}">${s.name} — ${s.price}฿</option>`).join('')}
+          </select>
+          <input name="qty" type="number" value="1" min="1" style="width:60px">
+          <button type="button" onclick="this.closest('.line').remove(); calcTotal();">ลบ</button>
+        `;
+        document.getElementById('lines').appendChild(div);
+        div.querySelector('select').addEventListener('change', calcTotal);
+        div.querySelector('input[name=qty]').addEventListener('input', calcTotal);
+        calcTotal();
+      }
+
+      function calcTotal(){
+        let total=0;
+        document.querySelectorAll('#lines .line').forEach(line=>{
+          const sel = line.querySelector('select');
+          const price = Number(sel.options[sel.selectedIndex].dataset.price||0);
+          const qty = Number(line.querySelector('input[name=qty]').value||0);
+          total += price * qty;
+        });
+        document.getElementById('orderTotal').textContent = total;
+      }
+
+      document.getElementById('addLine').addEventListener('click', addLine);
+
+      document.getElementById('orderForm').addEventListener('submit', async e=>{
+        e.preventDefault();
+        const f = e.target;
+        const customerName = f.customerName.value;
+        const items = {};
+        document.querySelectorAll('#lines .line').forEach(line=>{
+          const itemId = line.querySelector('select').value;
+          const qty = Number(line.querySelector('input[name=qty]').value||0);
+          const price = Number(line.querySelector('select').selectedOptions[0].dataset.price||0);
+          items[itemId] = {qty, price};
+        });
+        const totalAmount = Number(document.getElementById('orderTotal').textContent||0);
+        const order = {customerName, items, totalAmount};
+        const res = await App.createOrder(order);
+        alert(res.message || 'สั่งซื้อเรียบร้อย');
+        f.reset();
+        document.getElementById('lines').innerHTML='';
+        addLine();
+      });
+
+      init();
+    </script>
+  </body>
+</html>

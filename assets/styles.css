@@ -1,0 +1,9 @@
+:root{font-family:Inter, system-ui, -apple-system, Roboto, 'Noto Sans', 'Helvetica Neue', Arial}
+body{margin:0;background:#f7f7fb;color:#111}
+.container{max-width:980px;margin:32px auto;padding:0 16px}
+.card{background:#fff;border-radius:8px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}
+button{background:#0b69ff;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer}
+input,select{padding:6px;border:1px solid #ddd;border-radius:6px}
+form label{display:block;margin-bottom:8px}

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Report — พอใจขาย</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+  </head>
+  <body>
+    <main class="container">
+      <h1>รายงานรายการสั่งซื้อ</h1>
+      <div id="summary" class="card">
+        <div><strong>ยอดรวมทั้งหมด:</strong> <span id="totalRevenue">0</span> ฿</div>
+        <div><strong>ยอดยังไม่ชำระ:</strong> <span id="totalUnpaid">0</span> ฿</div>
+      </div>
+
+      <section class="card">
+        <h2>รายการสั่งซื้อ</h2>
+        <table id="ordersTable">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>วันที่</th>
+              <th>ลูกค้า</th>
+              <th>รายการ</th>
+              <th>รวม</th>
+              <th>ชำระแล้ว</th>
+              <th>สถานะ</th>
+              <th>การกระทำ</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+    </main>
+
+    <script src="/assets/app.js"></script>
+    <script>
+      async function renderOrders(){
+        const orders = await App.listOrders();
+        const tbody = document.querySelector('#ordersTable tbody');
+        tbody.innerHTML = '';
+        let total=0, unpaid=0;
+        orders.forEach(o=>{
+          total += Number(o.totalAmount||0);
+          const paid = Number(o.paidAmount||0);
+          if(!o.paid || paid < (Number(o.totalAmount)||0)) unpaid += (Number(o.totalAmount)||0) - paid;
+          const tr = document.createElement('tr');
+          const items = App.prettyItems(o['orders (JSON)'] || o.orders);
+          tr.innerHTML = `
+            <td>${o.orderId}</td>
+            <td>${o.date}</td>
+            <td>${o.customerName}</td>
+            <td>${items}</td>
+            <td>${o.totalAmount}</td>
+            <td>${o.paidAmount||0}</td>
+            <td>${o.paid ? 'Paid' : 'Unpaid'}</td>
+            <td>
+              <button onclick="confirmPayment('${o.orderId}')">ยืนยันการเก็บเงิน</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+        document.getElementById('totalRevenue').textContent = total;
+        document.getElementById('totalUnpaid').textContent = unpaid;
+      }
+
+      async function confirmPayment(orderId){
+        if(!confirm('ยืนยันการเก็บเงินสำหรับ ' + orderId + '?')) return;
+        const res = await App.confirmPayment(orderId);
+        alert(res.message || 'เสร็จแล้ว');
+        renderOrders();
+      }
+
+      renderOrders();
+    </script>
+  </body>
+</html>

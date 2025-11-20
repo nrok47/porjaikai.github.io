@@ -12,6 +12,7 @@
       <a href="order.html" class="navitem">สั่งซื้อสินค้า</a>
       <a href="seller.html" class="navitem">สต็อกสินค้า</a>
     </nav>
+    <div id="loadingBanner" class="loading-banner">รอโหลดสักครู่เด้อ</div>
     <main class="container">
       <h1>รายงานรายการสั่งซื้อ</h1>
       <section class="card">
@@ -58,14 +59,19 @@
         return d + '/' + (months[month-1]||parts[1]);
       }
 
+      function showLoading(){ const b = document.getElementById('loadingBanner'); if(b) b.style.display='block'; }
+      function hideLoading(){ const b = document.getElementById('loadingBanner'); if(b) b.style.display='none'; }
+
       async function init(){
+        showLoading();
         sellers = await App.listSellers();
         const d = new Date();
         const iso = d.toISOString().slice(0,10);
         document.getElementById('filterDate').value = iso;
-        document.getElementById('applyFilter').onclick = ()=>renderOrders();
-        document.getElementById('todayBtn').onclick = ()=>{ document.getElementById('filterDate').value = iso; renderOrders(); };
-        renderOrders();
+        document.getElementById('applyFilter').onclick = async ()=>{ showLoading(); await renderOrders(); hideLoading(); };
+        document.getElementById('todayBtn').onclick = async ()=>{ document.getElementById('filterDate').value = iso; showLoading(); await renderOrders(); hideLoading(); };
+        await renderOrders();
+        hideLoading();
       }
 
       function sameDate(a,b){ return (a||'').slice(0,10) === (b||'').slice(0,10); }

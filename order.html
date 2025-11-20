@@ -14,6 +14,7 @@
     </nav>
     <main class="container">
       <h1>สั่งซื้อสินค้า</h1>
+      <div id="loadingBanner" class="loading-banner">รอโหลดสักครู่เด้อ</div>
       <section class="card">
         <form id="orderForm">
           <label>ชื่อลูกค้า <input name="customerName" required></label>
@@ -32,11 +33,16 @@
     <script>
       let sellers = [];
       let qtys = {};
+      function showLoading(){ const b = document.getElementById('loadingBanner'); if(b) b.style.display='block'; }
+      function hideLoading(){ const b = document.getElementById('loadingBanner'); if(b) b.style.display='none'; }
+
       async function init(){
+        showLoading();
         sellers = await App.listSellers();
         qtys = {};
         renderMenuList();
         calcTotal();
+        hideLoading();
       }
 
       function getMenuImage(itemId) {

@@ -7,77 +7,126 @@
     <link rel="stylesheet" href="/assets/styles.css">
   </head>
   <body>
+    <nav class="navmenu">
+      <a href="index.html" class="navitem">รายงาน</a>
+      <a href="order.html" class="navitem active">สั่งซื้อสินค้า</a>
+      <a href="seller.html" class="navitem">สต็อกสินค้า</a>
+    </nav>
     <main class="container">
       <h1>สั่งซื้อสินค้า</h1>
       <section class="card">
         <form id="orderForm">
           <label>ชื่อลูกค้า <input name="customerName" required></label>
-          <div id="lines">
-            <!-- dynamic order lines -->
-          </div>
-          <button type="button" id="addLine">เพิ่มรายการ</button>
-          <div><strong>รวม:</strong> <span id="orderTotal">0</span> ฿</div>
-          <button type="submit">ส่งคำสั่งซื้อ</button>
+          <div id="menuList" class="menu-grid"></div>
+          <div style="margin:16px 0 8px 0;font-size:1.1em"><strong>รวม:</strong> <span id="orderTotal">0</span> ฿</div>
+          <button type="submit" style="width:100%;font-size:1.1em">ยืนยันการสั่งซื้อ</button>
         </form>
+      </section>
+      <section class="card" style="text-align:center">
+        <div style="margin:8px 0 4px 0;color:#444">สแกนจ่ายเงินได้ทันที</div>
+        <img src="625504.jpg" alt="QR Payment" style="max-width:220px;width:80vw;border-radius:12px;box-shadow:0 2px 8px #0001">
       </section>
     </main>
 
     <script src="/assets/app.js"></script>
     <script>
       let sellers = [];
+      let qtys = {};
       async function init(){
         sellers = await App.listSellers();
-        addLine();
-      }
-
-      function addLine(){
-        const idx = document.querySelectorAll('#lines .line').length;
-        const div = document.createElement('div');
-        div.className='line';
-        div.innerHTML = `
-          <select name="itemId">
-            ${sellers.map(s=>`<option value="${s.itemId}" data-price="${s.price}">${s.name} — ${s.price}฿</option>`).join('')}
-          </select>
-          <input name="qty" type="number" value="1" min="1" style="width:60px">
-          <button type="button" onclick="this.closest('.line').remove(); calcTotal();">ลบ</button>
-        `;
-        document.getElementById('lines').appendChild(div);
-        div.querySelector('select').addEventListener('change', calcTotal);
-        div.querySelector('input[name=qty]').addEventListener('input', calcTotal);
+        qtys = {};
+        renderMenuList();
         calcTotal();
       }
 
+      function getMenuImage(itemId) {
+        // Map itemId to image path
+        const map = {
+          'ITM-001': 'สลัด.jpg',
+          'ITM-002': 'ซุป.jpg',
+          'ITM-003': 'ข้าวโพด.jpg',
+          'ITM-004': 'น้ำฟักทอง.jpg',
+          'ITM-005': 'soybean milk-1.jpg'
+        };
+        return map[itemId] || '';
+      }
+
+      function renderMenuList(){
+        const menuDiv = document.getElementById('menuList');
+        // 2 columns grid
+        let html = '<div class="menu-grid-inner">';
+        sellers.forEach((s, i) => {
+          const q = qtys[s.itemId] || 0;
+          html += `<div class="menu-cell" style="box-shadow:0 1px 6px #0001;border-radius:12px;padding:10px 6px;margin:6px;background:#fff;display:flex;flex-direction:column;align-items:center;">
+            <img src="${getMenuImage(s.itemId)}" alt="${s.name}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;margin-bottom:6px;box-shadow:0 1px 4px #0002;">
+            <div style="font-weight:500;font-size:1.08em;text-align:center">${s.name}</div>
+            <div style="color:#666;font-size:0.98em;text-align:center">${s.price} ฿</div>
+            <div style="color:#999;font-size:0.85em;text-align:center">คงเหลือ: ${s.stock}</div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;">
+              <button type="button" class="qtybtn" data-id="${s.itemId}" data-delta="-1" style="background:#eee;color:#333;min-width:32px;">-</button>
+              <span style="min-width:24px;display:inline-block;text-align:center;font-size:1.1em">${q}</span>
+              <button type="button" class="qtybtn" data-id="${s.itemId}" data-delta="1" style="background:${(s.stock<=0||q>=s.stock)?'#ccc':'#0b69ff'};color:${(s.stock<=0||q>=s.stock)?'#666':'#fff'};min-width:32px;" ${(s.stock<=0||q>=s.stock)?'disabled':''}>+</button>
+            </div>
+          </div>`;
+        });
+        html += '</div>';
+        menuDiv.innerHTML = html;
+        // Attach event listeners
+        menuDiv.querySelectorAll('.qtybtn').forEach(btn => {
+          btn.onclick = function(){
+            const id = btn.getAttribute('data-id');
+            const delta = Number(btn.getAttribute('data-delta'));
+            const s = sellers.find(x=>x.itemId===id) || {stock:0};
+            const cur = qtys[id]||0;
+            if(delta > 0){
+              // increment up to stock
+              qtys[id] = Math.min(s.stock, cur + delta);
+            } else {
+              qtys[id] = Math.max(0, cur + delta);
+            }
+            renderMenuList();
+            calcTotal();
+          };
+        });
+      }
+
       function calcTotal(){
-        let total=0;
-        document.querySelectorAll('#lines .line').forEach(line=>{
-          const sel = line.querySelector('select');
-          const price = Number(sel.options[sel.selectedIndex].dataset.price||0);
-          const qty = Number(line.querySelector('input[name=qty]').value||0);
-          total += price * qty;
+        let total = 0;
+        sellers.forEach(s => {
+          total += (qtys[s.itemId]||0) * s.price;
         });
         document.getElementById('orderTotal').textContent = total;
       }
 
-      document.getElementById('addLine').addEventListener('click', addLine);
-
-      document.getElementById('orderForm').addEventListener('submit', async e=>{
+      document.getElementById('orderForm').addEventListener('submit', async e => {
         e.preventDefault();
         const f = e.target;
         const customerName = f.customerName.value;
         const items = {};
-        document.querySelectorAll('#lines .line').forEach(line=>{
-          const itemId = line.querySelector('select').value;
-          const qty = Number(line.querySelector('input[name=qty]').value||0);
-          const price = Number(line.querySelector('select').selectedOptions[0].dataset.price||0);
-          items[itemId] = {qty, price};
+        sellers.forEach(s => {
+          if(qtys[s.itemId] > 0){
+            items[s.itemId] = {qty: qtys[s.itemId], price: s.price};
+          }
         });
         const totalAmount = Number(document.getElementById('orderTotal').textContent||0);
+        if(Object.keys(items).length === 0){
+          alert('กรุณาเลือกสินค้าอย่างน้อย 1 รายการ');
+          return;
+        }
         const order = {customerName, items, totalAmount};
         const res = await App.createOrder(order);
+        if(res && res.error){
+          alert('ไม่สำเร็จ: ' + (res.error || 'Unknown'));
+          if(res.details) console.log('details', res.details);
+          return;
+        }
         alert(res.message || 'สั่งซื้อเรียบร้อย');
         f.reset();
-        document.getElementById('lines').innerHTML='';
-        addLine();
+        qtys = {};
+        // refresh sellers to get updated stock
+        sellers = await App.listSellers();
+        renderMenuList();
+        calcTotal();
       });
 
       init();

@@ -32,12 +32,41 @@ function handleRequest(e, isPost) {
   if (action === 'createOrder') {
     var order = e.order;
     var sheet = ss.getSheetByName('orderz');
+    var sellerSheet = ss.getSheetByName('seller');
     if (!sheet) return jsonResponse({error:'No orderz sheet'});
+    if (!sellerSheet) return jsonResponse({error:'No seller sheet'});
+    // Validate stock availability
+    var sellerData = sellerSheet.getDataRange().getValues();
+    var stockMap = {};
+    for (var i = 1; i < sellerData.length; i++) {
+      stockMap[sellerData[i][0]] = {row: i+1, stock: Number(sellerData[i][3])};
+    }
+    var items = order.items || {};
+    var insufficient = [];
+    for (var id in items) {
+      var qty = Number(items[id].qty || 0);
+      var s = stockMap[id];
+      var available = s ? s.stock : 0;
+      if (qty > available) insufficient.push({itemId: id, requested: qty, available: available});
+    }
+    if (insufficient.length > 0) {
+      return jsonResponse({error: 'Insufficient stock', details: insufficient});
+    }
+    // All good: append order and decrement stock
     var orderId = 'ORD-' + (sheet.getLastRow());
     var now = new Date();
     var row = [orderId, now.toISOString(), order.customerName, JSON.stringify(order.items), order.totalAmount, 0, '', false];
     sheet.appendRow(row);
-    return jsonResponse({success:true, orderId});
+    // update seller stock
+    for (var id2 in items) {
+      var qty2 = Number(items[id2].qty || 0);
+      var s2 = stockMap[id2];
+      if (s2) {
+        var newStock = s2.stock - qty2;
+        sellerSheet.getRange(s2.row, 4).setValue(newStock);
+      }
+    }
+    return jsonResponse({success:true, orderId: orderId});
   }
   if (action === 'confirmPayment') {
     var orderId = e.orderId;

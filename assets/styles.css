@@ -57,8 +57,8 @@
 }
 body {
 	margin: 0;
-	background: #f7f7fb;
-	color: #111;
+	background: #fbf8ff; /* soft pastel background */
+	color: #222;
 }
 .container {
 	max-width: 980px;
@@ -66,11 +66,11 @@ body {
 	padding: 0 8px;
 }
 .card {
-	background: #fff;
-	border-radius: 8px;
-	padding: 12px;
-	margin-bottom: 16px;
-	box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+	background: #fffefc;
+	border-radius: 12px;
+	padding: 14px;
+	margin-bottom: 18px;
+	box-shadow: 0 6px 24px rgba(99, 102, 241, 0.06);
 }
 table {
 	width: 100%;
@@ -78,24 +78,34 @@ table {
 	font-size: 15px;
 	overflow-x: auto;
 	display: block;
+	border: 1px solid rgba(0,0,0,0.06);
+	background: white;
 }
 thead {
-	background: #f2f2f2;
+	background: linear-gradient(90deg, #ffeef8, #f3fbff);
 }
 th, td {
-	padding: 8px 4px;
-	border-bottom: 1px solid #eee;
+	padding: 10px 8px;
+	border: 1px solid rgba(0,0,0,0.06);
 	text-align: left;
 	word-break: break-word;
 }
+/* zebra rows for readability */
+tbody tr:nth-child(even){ background: #fffafc; }
+
+/* Slightly bolder header text */
+th { font-weight: 600; color: #333; }
+/* make table scroll nicely */
+.card > div { overflow-x: auto; }
 button {
-	background: #0b69ff;
+	background: #6cc4a6; /* pastel mint */
 	color: #fff;
 	border: none;
-	padding: 7px 12px;
-	border-radius: 6px;
+	padding: 8px 14px;
+	border-radius: 10px;
 	cursor: pointer;
-	font-size: 1em;
+	font-size: 0.98em;
+	box-shadow: 0 6px 14px rgba(108,196,166,0.12);
 }
 input, select {
 	padding: 7px;
@@ -147,6 +157,34 @@ form label {
 		color: #555;
 		font-size: 0.95em;
 	}
+}
+
+/* Orders table small action button style */
+#ordersTable button {
+	padding: 6px 10px;
+	font-size: 0.9em;
+	border-radius: 8px;
+	background: #ffb3c7; /* pastel pink for action */
+	color: #4b2c2c;
+	box-shadow: none;
+}
+
+/* Status text style */
+#ordersTable td { vertical-align: middle; }
+#ordersTable td.status-paid { color: #2a7f66; font-weight: 600; }
+
+/* Pastel navigation accents */
+.navmenu { background: linear-gradient(90deg,#fff7fb,#f3fbff); border-bottom: 1px solid rgba(0,0,0,0.04); }
+.navitem { color: #5b3cff; }
+.navitem.active, .navitem:hover { background: rgba(91,60,255,0.08); }
+
+/* Make summary cards pastel */
+#summary { display:flex; gap:18px; align-items:center; }
+#summary strong { color: #4b3b7a; }
+
+/* Smaller, rounded table cells on small screens */
+@media (max-width: 600px) {
+	th, td { padding: 8px 10px; }
 }
 
 /* Modal scaling for mobile */

@@ -85,7 +85,6 @@
         sellers.forEach(s=>{ const th = document.createElement('th'); th.textContent = s.name; headerRow.appendChild(th); });
         headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'รวม'}));
         headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'สถานะ'}));
-        headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'การกระทำ'}));
 
         let total=0, unpaid=0;
         orders.forEach(o=>{
@@ -109,9 +108,14 @@
           });
 
           tr.appendChild(Object.assign(document.createElement('td'),{textContent:o.totalAmount}));
-          tr.appendChild(Object.assign(document.createElement('td'),{textContent:o.paid ? 'Paid' : 'Unpaid'}));
-          const actionHTML = (!o.paid || paid < (Number(o.totalAmount)||0)) ? `<button onclick="showPaymentModal('${o.orderId}')">ยืนยันการเก็บเงิน</button>` : '';
-          tr.appendChild(Object.assign(document.createElement('td'),{innerHTML: actionHTML}));
+          const statusTd = document.createElement('td');
+          const isPaid = o.paid && paid >= (Number(o.totalAmount)||0);
+          if(isPaid){
+            statusTd.textContent = 'จ่ายเงินแล้ว';
+          } else {
+            statusTd.innerHTML = `<button onclick="showPaymentModal('${o.orderId}')">ยืนยันเงิน</button>`;
+          }
+          tr.appendChild(statusTd);
 
           tbody.appendChild(tr);
         });

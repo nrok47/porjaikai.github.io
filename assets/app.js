@@ -128,5 +128,14 @@ const App = (function(){
     return fetchPost({action:'saveProduct', product:p});
   }
 
-  return {listSellers, listOrders, createOrder, confirmPayment, updateStock, saveProduct, prettyItems, normalizeOrder};
+  return {
+    listSellers,
+    listOrders,
+    createOrder,
+    confirmPayment,
+    updateStock,
+    saveProduct,
+    prettyItems,
+    normalizeOrder
+  };
 })();

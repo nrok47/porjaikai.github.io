@@ -201,6 +201,27 @@ form label {
 	font-weight: 600;
 }
 
+/* Rainbow CTA button (fixed top-right) */
+.cta-order{
+	position:fixed;
+	top:12px;
+	right:12px;
+	z-index:99999;
+	display:inline-block;
+	padding:10px 14px;
+	border-radius:999px;
+	color:#fff;
+	font-weight:700;
+	text-decoration:none;
+	box-shadow:0 8px 24px rgba(0,0,0,0.12);
+	background: linear-gradient(90deg,#ff5f6d,#ffc371,#8be9a8,#6cc4ff);
+	background-size: 400% 100%;
+	animation: rainbowShift 6s linear infinite;
+}
+.cta-order:hover{ transform: translateY(-2px); }
+@keyframes rainbowShift{ 0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%} }
+@media(max-width:600px){ .cta-order{ top:10px; right:8px; padding:8px 10px; font-size:0.95em; } }
+
 /* Modal scaling for mobile */
 #paymentModal > div {
 	max-width: 98vw !important;

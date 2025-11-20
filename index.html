@@ -10,149 +10,121 @@
     <nav class="navmenu">
       <a href="index.html" class="navitem active">รายงาน</a>
       <a href="order.html" class="navitem">สั่งซื้อสินค้า</a>
-      <a href="seller.html" class="navitem">สต็อกสินค้า</a>
-    </nav>
-    <main class="container">
-      <h1>รายงานรายการสั่งซื้อ</h1>
-      <section class="card">
-        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-          <label>เลือกวันที่: <input type="date" id="filterDate"></label>
-          <button id="applyFilter">กรอง</button>
-          <button id="todayBtn">วันนี้</button>
-        </div>
-      </section>
-      <div id="summary" class="card">
-        <div><strong>ยอดรวมทั้งหมด:</strong> <span id="totalRevenue">0</span> ฿</div>
-        <div><strong>ยอดยังไม่ชำระ:</strong> <span id="totalUnpaid">0</span> ฿</div>
-      </div>
+      <script src="/assets/app.js"></script>
+      <script>
+        // Renderer with date filter and product columns
+        let sellers = [];
 
-      <section class="card">
-        <h2>รายการสั่งซื้อ</h2>
-        <div style="overflow:auto">
-          <table id="ordersTable">
-            <thead>
-              <tr id="ordersHeader">
-                <th>Order ID</th>
-                <th>วันที่</th>
-                <th>ลูกค้า</th>
-                <!-- product columns will be injected here -->
-                <th>รวม</th>
-                <th>ชำระแล้ว</th>
-                <th>สถานะ</th>
-                <th>การกระทำ</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </section>
-    </main>
+        function formatThaiShort(dateStr){
+          if(!dateStr) return '';
+          const ymd = (dateStr + '').slice(0,10);
+          const m = ymd.split('-');
+          if(m.length !== 3) return dateStr;
+          const d = String(Number(m[2]));
+          const month = Number(m[1]);
+          const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+          return d + '/' + (months[month-1]||m[1]);
+        }
 
-    <script src="/assets/app.js"></script>
-    <script>
-      async function renderOrders(){
-        const orders = await App.listOrders();
-        const tbody = document.querySelector('#ordersTable tbody');
-        tbody.innerHTML = '';
-        let total=0, unpaid=0;
-        orders.forEach(o=>{
-          total += Number(o.totalAmount||0);
-          const paid = Number(o.paidAmount||0);
-          if(!o.paid || paid < (Number(o.totalAmount)||0)) unpaid += (Number(o.totalAmount)||0) - paid;
-          const tr = document.createElement('tr');
-          const items = App.prettyItems(o['orders (JSON)'] || o.orders);
-          let btn = '';
-          if(!o.paid || paid < (Number(o.totalAmount)||0)){
-            btn = `<button onclick="showPaymentModal('${o.orderId}')">ยืนยันการเก็บเงิน</button>`;
+        async function init(){
+          sellers = await App.listSellers();
+          const d = new Date();
+          const iso = d.toISOString().slice(0,10);
+          document.getElementById('filterDate').value = iso;
+          document.getElementById('applyFilter').onclick = ()=>renderOrders();
+          document.getElementById('todayBtn').onclick = ()=>{ document.getElementById('filterDate').value = iso; renderOrders(); };
+          renderOrders();
+        }
+
+        function sameDate(a,b){ return (a||'').slice(0,10) === (b||'').slice(0,10); }
+
+        async function renderOrders(){
+          const filterDate = document.getElementById('filterDate').value || new Date().toISOString().slice(0,10);
+          const orders = await App.listOrders();
+          const tbody = document.querySelector('#ordersTable tbody');
+          tbody.innerHTML = '';
+
+          // rebuild header with product columns
+          const headerRow = document.getElementById('ordersHeader');
+          headerRow.innerHTML = '';
+          headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'Order ID'}));
+          headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'วันที่'}));
+          headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'ลูกค้า'}));
+          sellers.forEach(s=>{
+            const th = document.createElement('th'); th.textContent = s.name; headerRow.appendChild(th);
+          });
+          headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'รวม'}));
+          headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'สถานะ'}));
+          headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'การกระทำ'}));
+
+          let total=0, unpaid=0;
+          orders.forEach(o=>{
+            const od = (o.date||'').slice(0,10);
+            if(!sameDate(od, filterDate)) return;
+            total += Number(o.totalAmount||0);
+            const paid = Number(o.paidAmount||0);
+            if(!o.paid || paid < (Number(o.totalAmount)||0)) unpaid += (Number(o.totalAmount)||0) - paid;
+
+            const tr = document.createElement('tr');
+            tr.appendChild(Object.assign(document.createElement('td'),{textContent:o.orderId}));
+            tr.appendChild(Object.assign(document.createElement('td'),{textContent: formatThaiShort(o.date)}));
+            tr.appendChild(Object.assign(document.createElement('td'),{textContent:o.customerName}));
+
+            const orderItems = o.orders || o['orders (JSON)'] || {};
+            sellers.forEach(s=>{
+              const td = document.createElement('td');
+              const qty = orderItems[s.itemId] ? (orderItems[s.itemId].qty || orderItems[s.itemId].quantity || 0) : 0;
+              td.textContent = qty>0 ? qty : '';
+              tr.appendChild(td);
+            });
+
+            tr.appendChild(Object.assign(document.createElement('td'),{textContent:o.totalAmount}));
+            tr.appendChild(Object.assign(document.createElement('td'),{textContent:o.paid ? 'Paid' : 'Unpaid'}));
+            const actionHTML = (!o.paid || paid < (Number(o.totalAmount)||0)) ? `<button onclick="showPaymentModal('${o.orderId}')">ยืนยันการเก็บเงิน</button>` : '';
+            tr.appendChild(Object.assign(document.createElement('td'),{innerHTML: actionHTML}));
+
+            tbody.appendChild(tr);
+          });
+
+          document.getElementById('totalRevenue').textContent = total;
+          document.getElementById('totalUnpaid').textContent = unpaid;
+        }
+
+        // payment modal (unchanged)
+        function showPaymentModal(orderId){
+          let modal = document.getElementById('paymentModal');
+          if(!modal){
+            modal = document.createElement('div');
+            modal.id = 'paymentModal';
+            modal.style = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;z-index:9999;';
+            modal.innerHTML = `
+              <div style="background:#fff;padding:24px 32px;border-radius:12px;min-width:280px;max-width:90vw;box-shadow:0 2px 16px #0002;">
+                <h3>เลือกวิธีการชำระเงิน</h3>
+                <form id="payForm">
+                  <label><input type="radio" name="method" value="QR Code" required> QR Code</label><br>
+                  <label><input type="radio" name="method" value="พร้อมเพย์"> พร้อมเพย์</label><br>
+                  <label><input type="radio" name="method" value="เงินสด"> เงินสด</label><br>
+                  <div style="margin-top:16px;text-align:right;">
+                    <button type="submit">ยืนยัน</button>
+                    <button type="button" onclick="document.getElementById('paymentModal').remove()">ยกเลิก</button>
+                  </div>
+                </form>
+              </div>
+            `;
+            document.body.appendChild(modal);
           }
-          tr.innerHTML = `
-            <td>${o.orderId}</td>
-            <td>${o.date}</td>
-            <td>${o.customerName}</td>
-            <td>${items}</td>
-            <td>${o.totalAmount}</td>
-            <td>${o.paidAmount||0}</td>
-            <td>${o.paid ? 'Paid' : 'Unpaid'}</td>
-            <script src="/assets/app.js"></script>
-            <script>
-              // date filter and product-columns aware renderer
-              let sellers = [];
-              async function init(){
-                sellers = await App.listSellers();
-                // set date input default to today
-                const d = new Date();
-                const iso = d.toISOString().slice(0,10);
-                document.getElementById('filterDate').value = iso;
-                document.getElementById('applyFilter').onclick = ()=>renderOrders();
-                document.getElementById('todayBtn').onclick = ()=>{ document.getElementById('filterDate').value = iso; renderOrders(); };
-                renderOrders();
-              }
+          modal.querySelector('#payForm').onsubmit = async function(e){
+            e.preventDefault();
+            const method = modal.querySelector('input[name=method]:checked').value;
+            const res = await App.confirmPayment(orderId, method);
+            alert((res.message||'เสร็จแล้ว') + '\nวิธี: ' + method);
+            modal.remove();
+            renderOrders();
+          };
+        }
 
-              function sameDate(a, b){
-                // compare YYYY-MM-DD
-                return a.slice(0,10) === b.slice(0,10);
-              }
-
-              async function renderOrders(){
-                const filterDate = document.getElementById('filterDate').value; // YYYY-MM-DD
-                const orders = await App.listOrders();
-                const tbody = document.querySelector('#ordersTable tbody');
-                tbody.innerHTML = '';
-                // prepare header: inject product columns (use sellers, max 5)
-                const headerRow = document.getElementById('ordersHeader');
-                // remove existing product columns if any (between customer and total)
-                // we'll rebuild by clearing and reappending static headers
-                headerRow.innerHTML = '';
-                headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'Order ID'}));
-                headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'วันที่'}));
-                headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'ลูกค้า'}));
-                // product columns
-                sellers.forEach(s=>{
-                  const th = document.createElement('th');
-                  th.textContent = s.name;
-                  headerRow.appendChild(th);
-                });
-                headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'รวม'}));
-                headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'ชำระแล้ว'}));
-                headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'สถานะ'}));
-                headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'การกระทำ'}));
-
-                let total=0, unpaid=0;
-                const today = filterDate || new Date().toISOString().slice(0,10);
-                orders.forEach(o=>{
-                  const od = (o.date||'').slice(0,10);
-                  if(!sameDate(od, today)) return; // skip other dates
-                  total += Number(o.totalAmount||0);
-                  const paid = Number(o.paidAmount||0);
-                  if(!o.paid || paid < (Number(o.totalAmount)||0)) unpaid += (Number(o.totalAmount)||0) - paid;
-
-                  const tr = document.createElement('tr');
-                  const btnCell = document.createElement('td');
-                  // build action button if unpaid
-                  let actionHTML = '';
-                  if(!o.paid || paid < (Number(o.totalAmount)||0)){
-                    actionHTML = `<button onclick="showPaymentModal('${o.orderId}')">ยืนยันการเก็บเงิน</button>`;
-                  }
-                  tr.appendChild(Object.assign(document.createElement('td'),{textContent:o.orderId}));
-                  tr.appendChild(Object.assign(document.createElement('td'),{textContent:o.date}));
-                  tr.appendChild(Object.assign(document.createElement('td'),{textContent:o.customerName}));
-                  // product quantity columns
-                  const orderItems = o.orders || o['orders (JSON)'] || {};
-                  sellers.forEach(s=>{
-                    const td = document.createElement('td');
-                    const qty = orderItems[s.itemId] ? (orderItems[s.itemId].qty || orderItems[s.itemId].quantity || 0) : 0;
-                    td.textContent = qty>0 ? qty : '';
-                    tr.appendChild(td);
-                  });
-                  tr.appendChild(Object.assign(document.createElement('td'),{textContent:o.totalAmount}));
-                  tr.appendChild(Object.assign(document.createElement('td'),{textContent:o.paidAmount||0}));
-                  tr.appendChild(Object.assign(document.createElement('td'),{textContent:o.paid ? 'Paid' : 'Unpaid'}));
-                  tr.appendChild(Object.assign(document.createElement('td'),{innerHTML:actionHTML}));
-
-                  tbody.appendChild(tr);
-                });
-                document.getElementById('totalRevenue').textContent = total;
-                document.getElementById('totalUnpaid').textContent = unpaid;
+        init();
+      </script>
               }
 
               // Payment modal logic (same as before)

@@ -47,6 +47,10 @@
           if(!o.paid || paid < (Number(o.totalAmount)||0)) unpaid += (Number(o.totalAmount)||0) - paid;
           const tr = document.createElement('tr');
           const items = App.prettyItems(o['orders (JSON)'] || o.orders);
+          let btn = '';
+          if(!o.paid || paid < (Number(o.totalAmount)||0)){
+            btn = `<button onclick="showPaymentModal('${o.orderId}')">ยืนยันการเก็บเงิน</button>`;
+          }
           tr.innerHTML = `
             <td>${o.orderId}</td>
             <td>${o.date}</td>
@@ -55,9 +59,7 @@
             <td>${o.totalAmount}</td>
             <td>${o.paidAmount||0}</td>
             <td>${o.paid ? 'Paid' : 'Unpaid'}</td>
-            <td>
-              <button onclick="confirmPayment('${o.orderId}')">ยืนยันการเก็บเงิน</button>
-            </td>
+            <td>${btn}</td>
           `;
           tbody.appendChild(tr);
         });
@@ -65,11 +67,39 @@
         document.getElementById('totalUnpaid').textContent = unpaid;
       }
 
-      async function confirmPayment(orderId){
-        if(!confirm('ยืนยันการเก็บเงินสำหรับ ' + orderId + '?')) return;
-        const res = await App.confirmPayment(orderId);
-        alert(res.message || 'เสร็จแล้ว');
-        renderOrders();
+
+      // Payment modal logic
+      function showPaymentModal(orderId){
+        let modal = document.getElementById('paymentModal');
+        if(!modal){
+          modal = document.createElement('div');
+          modal.id = 'paymentModal';
+          modal.style = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;z-index:9999;';
+          modal.innerHTML = `
+            <div style="background:#fff;padding:24px 32px;border-radius:12px;min-width:280px;max-width:90vw;box-shadow:0 2px 16px #0002;">
+              <h3>เลือกวิธีการชำระเงิน</h3>
+              <form id="payForm">
+                <label><input type="radio" name="method" value="QR Code" required> QR Code</label><br>
+                <label><input type="radio" name="method" value="พร้อมเพย์"> พร้อมเพย์</label><br>
+                <label><input type="radio" name="method" value="เงินสด"> เงินสด</label><br>
+                <div style="margin-top:16px;text-align:right;">
+                  <button type="submit">ยืนยัน</button>
+                  <button type="button" onclick="document.getElementById('paymentModal').remove()">ยกเลิก</button>
+                </div>
+              </form>
+            </div>
+          `;
+          document.body.appendChild(modal);
+        }
+        // Attach submit handler
+        modal.querySelector('#payForm').onsubmit = async function(e){
+          e.preventDefault();
+          const method = modal.querySelector('input[name=method]:checked').value;
+          const res = await App.confirmPayment(orderId, method);
+          alert((res.message||'เสร็จแล้ว') + '\nวิธี: ' + method);
+          modal.remove();
+          renderOrders();
+        };
       }
 
       renderOrders();

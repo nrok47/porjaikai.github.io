@@ -1,5 +1,6 @@
 // App client for connecting to Google Apps Script or local CSV fallback
 const App = (function(){
+  //const BASE_URL = 'https://script.google.com/macros/s/AKfycbxy9eAYKy-8HjBOCcWEz2A2sTVJFGylQQciVWvMfMfzPAu771cbkh8h7vQoPOYgByLj/exec';
   const BASE_URL = 'https://script.google.com/macros/s/AKfycbxy9eAYKy-8HjBOCcWEz2A2sTVJFGylQQciVWvMfMfzPAu771cbkh8h7vQoPOYgByLj/exec';
   const SHEET_ID = '1DWA2VlKwmYbvmxTmXUQJQOTalxVOPmx5lAqq8EFtQ0w';
 
@@ -14,7 +15,7 @@ const App = (function(){
   async function fetchPost(body){
     const res = await fetch(BASE_URL, {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: {'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify(Object.assign({sheetId: SHEET_ID}, body))
     });
     return res.json().catch(()=>null);
@@ -111,6 +112,11 @@ const App = (function(){
   }
 
   async function confirmPayment(orderId){
+    // Accept optional method
+    if(arguments.length > 1){
+      const method = arguments[1];
+      return fetchPost({action:'confirmPayment', orderId, method});
+    }
     return fetchPost({action:'confirmPayment', orderId});
   }
 

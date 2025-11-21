@@ -93,6 +93,12 @@
         headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'รวม'}));
         headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'สถานะ'}));
 
+        // collect header labels for mobile view (used with CSS td:before content)
+        const headers = Array.from(headerRow.children).map(h=>h.textContent);
+
+        // helper to create TD with data-label for responsive layout
+        function mkTd(txt, label){ const td = document.createElement('td'); td.textContent = txt; if(label) td.setAttribute('data-label', label); return td; }
+
         let total=0, unpaid=0;
         orders.forEach(o=>{
           const od = (o.date||'').slice(0,10);
@@ -102,20 +108,21 @@
           if(!o.paid || paid < (Number(o.totalAmount)||0)) unpaid += (Number(o.totalAmount)||0) - paid;
 
           const tr = document.createElement('tr');
-          tr.appendChild(Object.assign(document.createElement('td'),{textContent:o.orderId}));
-          tr.appendChild(Object.assign(document.createElement('td'),{textContent: formatThaiShort(o.date)}));
-          tr.appendChild(Object.assign(document.createElement('td'),{textContent:o.customerName}));
+          tr.appendChild(mkTd(o.orderId, headers[0]));
+          tr.appendChild(mkTd(formatThaiShort(o.date), headers[1]));
+          tr.appendChild(mkTd(o.customerName, headers[2]));
 
           const orderItems = o.orders || o['orders (JSON)'] || {};
-          sellers.forEach(s=>{
-            const td = document.createElement('td');
+          sellers.forEach((s, si)=>{
             const qty = orderItems[s.itemId] ? (orderItems[s.itemId].qty || orderItems[s.itemId].quantity || 0) : 0;
-            td.textContent = qty>0 ? qty : '';
-            tr.appendChild(td);
+            tr.appendChild(mkTd(qty>0 ? qty : '', headers[3 + si]));
           });
 
-          tr.appendChild(Object.assign(document.createElement('td'),{textContent:o.totalAmount}));
-          const statusTd = document.createElement('td');
+          // total and status
+          const totalIndex = headers.length - 2;
+          const statusIndex = headers.length - 1;
+          tr.appendChild(mkTd(o.totalAmount, headers[totalIndex]));
+          const statusTd = mkTd('', headers[statusIndex]);
           const isPaid = o.paid && paid >= (Number(o.totalAmount)||0);
           if(isPaid){
             statusTd.textContent = 'จ่ายเงินแล้ว';

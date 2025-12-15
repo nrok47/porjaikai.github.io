@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Order Batch — ร้านพอใจขาย</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <style>
+      .batch-table { width: 100%; border-collapse: collapse; }
+      .batch-table th, .batch-table td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+      .batch-table thead th { position: sticky; top: 0; background: #fafafa; z-index: 1; }
+      .batch-scroll { overflow-x: auto; }
+      .cust-input { width: 100%; padding: 6px; }
+      .qty-input { width: 64px; text-align: center; }
+      .table-note { color: #666; font-size: 0.9em; margin: 8px 0; }
+    </style>
+  </head>
+  <body>
+    <nav class="navmenu">
+      <a href="index.html" class="navitem">รายงาน</a>
+      <a href="order.html" class="navitem">สั่งซื้อสินค้า</a>
+      <a href="seller.html" class="navitem">สต็อกสินค้า</a>
+      <a href="order_batch.html" class="navitem active">สั่งซื้อแบบกลุ่ม</a>
+    </nav>
+    <main class="container">
+      <h1>สั่งซื้อแบบกลุ่ม (Batch)</h1>
+      <div id="loadingBanner" class="loading-banner">รอโหลดสักครู่เด้อ</div>
+
+      <section class="card">
+        <div class="table-note">ระบุชื่อผู้สั่งในแต่ละแถว และใส่จำนวนเป็นตัวเลขในตาราง แล้วกดบันทึก</div>
+        <div id="tableWrap" class="batch-scroll"></div>
+        <div style="margin-top:12px">
+          <button id="saveBtn" style="width:100%;font-size:1.05em">บันทึกคำสั่งซื้อแบบกลุ่ม</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="assets/app.js"></script>
+    <script>
+      const ROWS = 10; // จำนวนแถว
+      let sellers = [];
+
+      function showLoading(){ const b = document.getElementById('loadingBanner'); if(b) b.style.display='block'; }
+      function hideLoading(){ const b = document.getElementById('loadingBanner'); if(b) b.style.display='none'; }
+
+      async function init(){
+        showLoading();
+        sellers = await App.listSellers();
+        renderTable();
+        hideLoading();
+      }
+
+      function renderTable(){
+        const wrap = document.getElementById('tableWrap');
+        let html = '<table class="batch-table"><thead><tr>';
+        html += '<th style="min-width:160px;text-align:left">ชื่อผู้สั่ง</th>';
+        sellers.forEach(s => {
+          html += `<th title="${s.name}">${s.name}
+            <div style=\"color:#888;font-size:0.85em\">${s.price} ฿</div>
+            <div style=\"color:#999;font-size:0.8em\">คงเหลือ: ${Number(s.stock||0)}</div>
+          </th>`;
+        });
+        html += '</tr></thead><tbody>';
+        for(let r=0; r<ROWS; r++){
+          html += '<tr>';
+          html += `<td style="text-align:left"><input class="cust-input" placeholder="เช่น: คุณเอ" data-row="${r}" /></td>`;
+          sellers.forEach(s => {
+            html += `<td><input class="qty-input" type="number" min="0" step="1" data-row="${r}" data-id="${s.itemId}" /></td>`;
+          });
+          html += '</tr>';
+        }
+        html += '</tbody></table>';
+        wrap.innerHTML = html;
+      }
+
+      async function saveBatch(){
+        // อ่านข้อมูลจากตาราง แล้วสร้าง order ทีละคน พร้อมตรวจสต็อกสะสม
+        const inputs = Array.from(document.querySelectorAll('.qty-input'));
+        const nameInputs = Array.from(document.querySelectorAll('.cust-input'));
+        const byRow = new Map();
+
+        // เตรียมชื่อในแต่ละแถว
+        nameInputs.forEach(inp => {
+          const row = Number(inp.getAttribute('data-row'));
+          const name = (inp.value||'').trim();
+          byRow.set(row, { name, items: {} });
+        });
+
+        // รวบรวมจำนวนสินค้า
+        inputs.forEach(inp => {
+          const row = Number(inp.getAttribute('data-row'));
+          const id = inp.getAttribute('data-id');
+          const qty = Number(inp.value||0);
+          if(!byRow.has(row)) byRow.set(row, { name:'', items:{} });
+          if(qty > 0){
+            const seller = sellers.find(x=>x.itemId===id);
+            byRow.get(row).items[id] = { qty, price: seller ? seller.price : 0 };
+          }
+        });
+
+        // สต็อกคงเหลือแบบสะสม ขณะทำรายการทีละแถว
+        const remaining = {};
+        sellers.forEach(s => { remaining[s.itemId] = Number(s.stock||0); });
+
+        let success = 0, failed = 0;
+        const failDetails = [];
+
+        for(const [row, data] of byRow.entries()){
+          if(!data.name || Object.keys(data.items).length===0) continue;
+
+          // จำกัดจำนวนตามสต็อกคงเหลือ ณ ตอนนี้
+          const adjustedItems = {};
+          Object.entries(data.items).forEach(([id, v]) => {
+            const req = Number(v.qty||0);
+            const avail = Number(remaining[id]||0);
+            if(req <= 0) return;
+            if(avail <= 0) return; // หมดสต็อกแล้ว
+            const take = Math.min(req, avail);
+            if(take > 0){
+              adjustedItems[id] = { qty: take, price: v.price };
+            }
+          });
+
+          if(Object.keys(adjustedItems).length === 0){
+            failed++;
+            failDetails.push({ name: data.name, reason: 'Insufficient stock for requested items' });
+            continue;
+          }
+
+          const totalAmount = Object.entries(adjustedItems).reduce((sum,[,v])=>sum + (v.qty*v.price), 0);
+          const order = { customerName: data.name, items: adjustedItems, totalAmount };
+          try{
+            const res = await App.createOrder(order);
+            if(res && !res.error){
+              success++;
+              // ตัดสต็อกจาก remaining เมื่อสำเร็จ
+              Object.entries(adjustedItems).forEach(([id,v]) => { remaining[id] = Math.max(0, (remaining[id]||0) - v.qty); });
+            } else {
+              failed++;
+              if(res && res.error === 'Insufficient stock' && Array.isArray(res.details)){
+                failDetails.push({ name: data.name, reason: 'Insufficient stock', details: res.details });
+              } else {
+                failDetails.push({ name: data.name, reason: (res && res.error) || 'Unknown' });
+              }
+              console.log('order failed', data.name, res);
+            }
+          }catch(e){
+            failed++;
+            failDetails.push({ name: data.name, reason: 'Network/Error' });
+            console.error('order error', e);
+          }
+        }
+
+        if(success===0 && failed===0){
+          alert('กรุณาระบุชื่อผู้สั่งและจำนวนสินค้าอย่างน้อย 1 รายการ');
+          return;
+        }
+
+        if(failed>0){
+          // แสดงรายละเอียดบางส่วนของความล้มเหลว เพื่อช่วยแก้ไขเร็ว
+          const lines = failDetails.slice(0, 5).map(fd => {
+            if(fd.details){
+              const ds = fd.details.map(d => `${d.name || d.itemId}: ขอ ${d.requested}, คงเหลือ ${d.available}`).join(', ');
+              return `${fd.name}: สต็อกไม่พอ (${ds})`;
+            }
+            return `${fd.name}: ${fd.reason}`;
+          });
+          alert(`บันทึกสำเร็จ ${success} รายการ, ไม่สำเร็จ ${failed} รายการ\n` + (lines.length?lines.join('\n'):''));
+        } else {
+          alert(`บันทึกสำเร็จ ${success} รายการ`);
+        }
+
+        // ล้างตารางหลังบันทึก และรีเฟรชรายการสินค้า/สต็อก
+        sellers = await App.listSellers();
+        renderTable();
+      }
+
+      document.getElementById('saveBtn').addEventListener('click', saveBatch);
+      init();
+    </script>
+  </body>
+</html>

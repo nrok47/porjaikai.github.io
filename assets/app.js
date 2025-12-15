@@ -128,6 +128,16 @@ const App = (function(){
     return fetchPost({action:'saveProduct', product:p});
   }
 
+  // Update sending status (orderz!I sending_status) for an order
+  async function updateOrderSendingStatus(orderId, status){
+    return fetchPost({action:'updateOrderSendingStatus', orderId, status});
+  }
+
+  // Update place sent (orderz!J place_sent) for an order
+  async function updateOrderPlace(orderId, place){
+    return fetchPost({action:'updateOrderPlace', orderId, place});
+  }
+
   return {
     listSellers,
     listOrders,
@@ -135,6 +145,8 @@ const App = (function(){
     confirmPayment,
     updateStock,
     saveProduct,
+    updateOrderSendingStatus,
+    updateOrderPlace,
     prettyItems,
     normalizeOrder
   };

@@ -92,6 +92,8 @@
         sellers.forEach(s=>{ const th = document.createElement('th'); th.textContent = s.name; headerRow.appendChild(th); });
         headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'รวม'}));
         headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'สถานะ'}));
+        headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'สถานะการส่ง'}));
+        headerRow.appendChild(Object.assign(document.createElement('th'),{textContent:'สถานที่ส่ง'}));
 
         // collect header labels for mobile view (used with CSS td:before content)
         const headers = Array.from(headerRow.children).map(h=>h.textContent);
@@ -119,8 +121,10 @@
           });
 
           // total and status
-          const totalIndex = headers.length - 2;
-          const statusIndex = headers.length - 1;
+          const totalIndex = headers.length - 4;
+          const statusIndex = headers.length - 3;
+          const sendIndex = headers.length - 2;
+          const placeIndex = headers.length - 1;
           tr.appendChild(mkTd(o.totalAmount, headers[totalIndex]));
           const statusTd = mkTd('', headers[statusIndex]);
           const isPaid = o.paid && paid >= (Number(o.totalAmount)||0);
@@ -130,6 +134,67 @@
             statusTd.innerHTML = `<button onclick="showPaymentModal('${o.orderId}')">ยืนยันเงิน</button>`;
           }
           tr.appendChild(statusTd);
+
+          // สถานะการส่ง: ส่งแล้ว/ยัง (default not)
+          const sendTd = document.createElement('td');
+          sendTd.setAttribute('data-label', headers[sendIndex]);
+          const sendSel = document.createElement('select');
+          sendSel.innerHTML = `
+            <option value="not">ยัง</option>
+            <option value="send">ส่งแล้ว</option>
+          `;
+          // default selection from o.sending_status if present
+          const sendingStatus = (o.sending_status || o.sendingStatus || 'not');
+          sendSel.value = sendingStatus === 'send' ? 'send' : 'not';
+          sendSel.onchange = async function(){
+            const val = sendSel.value;
+            try{
+              const res = await App.updateOrderSendingStatus(o.orderId, val);
+              if(res && !res.error){
+                // refresh the row view to reflect remote changes
+                renderOrders();
+              } else {
+                alert('อัปเดตสถานะการส่งไม่สำเร็จ' + (res && res.error ? `\n${res.error}` : ''));
+                // revert selection on error
+                sendSel.value = (o.sending_status || o.sendingStatus || 'not') === 'send' ? 'send' : 'not';
+              }
+            }catch(e){
+              alert('อัปเดตสถานะการส่งไม่สำเร็จ\n' + (e && e.message ? e.message : 'Function error'));
+              sendSel.value = (o.sending_status || o.sendingStatus || 'not') === 'send' ? 'send' : 'not';
+            }
+          };
+          sendTd.appendChild(sendSel);
+          tr.appendChild(sendTd);
+
+          // สถานที่ส่ง dropdown
+          const placeTd = document.createElement('td');
+          placeTd.setAttribute('data-label', headers[placeIndex]);
+          const placeSel = document.createElement('select');
+          placeSel.innerHTML = `
+            <option value="fl_1">โต๊ะชั้น1</option>
+            <option value="fl_2">โต๊ะชั้น2</option>
+            <option value="fl_3">โต๊ะชั้น3</option>
+            <option value="hand">รับเอง</option>
+          `;
+          const placeVal = (o.place_sent || o.placeSent || 'hand');
+          placeSel.value = ['fl_1','fl_2','fl_3','hand'].includes(placeVal) ? placeVal : 'hand';
+          placeSel.onchange = async function(){
+            const val = placeSel.value;
+            try{
+              const res = await App.updateOrderPlace(o.orderId, val);
+              if(res && !res.error){
+                renderOrders();
+              } else {
+                alert('อัปเดตสถานที่ส่งไม่สำเร็จ' + (res && res.error ? `\n${res.error}` : ''));
+                placeSel.value = (['fl_1','fl_2','fl_3','hand'].includes(placeVal) ? placeVal : 'hand');
+              }
+            }catch(e){
+              alert('อัปเดตสถานที่ส่งไม่สำเร็จ\n' + (e && e.message ? e.message : 'Function error'));
+              placeSel.value = (['fl_1','fl_2','fl_3','hand'].includes(placeVal) ? placeVal : 'hand');
+            }
+          };
+          placeTd.appendChild(placeSel);
+          tr.appendChild(placeTd);
 
           tbody.appendChild(tr);
         });

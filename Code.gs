@@ -114,6 +114,36 @@ function handleRequest(e, isPost) {
     sheet.appendRow([p.itemId, p.name, p.price, p.stock]);
     return jsonResponse({success:true});
   }
+  // Update sending_status (column I) by orderId
+  if (action === 'updateOrderSendingStatus') {
+    var orderIdS = e.orderId;
+    var status = e.status || 'not';
+    var sheetS = ss.getSheetByName('orderz');
+    if (!sheetS) return jsonResponse({error:'No orderz sheet'});
+    var dataS = sheetS.getDataRange().getValues();
+    for (var iS = 1; iS < dataS.length; iS++) {
+      if (dataS[iS][0] == orderIdS) {
+        sheetS.getRange(iS+1, 9).setValue(status); // I column
+        return jsonResponse({success:true});
+      }
+    }
+    return jsonResponse({error:'Order not found'});
+  }
+  // Update place_sent (column J) by orderId
+  if (action === 'updateOrderPlace') {
+    var orderIdP = e.orderId;
+    var place = e.place || 'hand';
+    var sheetP = ss.getSheetByName('orderz');
+    if (!sheetP) return jsonResponse({error:'No orderz sheet'});
+    var dataP = sheetP.getDataRange().getValues();
+    for (var iP = 1; iP < dataP.length; iP++) {
+      if (dataP[iP][0] == orderIdP) {
+        sheetP.getRange(iP+1, 10).setValue(place); // J column
+        return jsonResponse({success:true});
+      }
+    }
+    return jsonResponse({error:'Order not found'});
+  }
   return jsonResponse({error:'Unknown action'});
 }
 

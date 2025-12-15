@@ -189,6 +189,26 @@
           min-width: 100%;
         }
       }
+      .notification {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        padding: 24px 40px;
+        border-radius: 12px;
+        font-size: 1.2em;
+        font-weight: 700;
+        z-index: 99999;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+        text-align: center;
+      }
+      .notification-success {
+        background: rgba(108,196,166,0.95);
+      }
+      .notification-payment {
+        background: rgba(102,126,234,0.95);
+      }
     </style>
   </head>
   <body>
@@ -390,7 +410,9 @@
               const card = this.closest('.order-card');
               // Show visual feedback
               const prepared = document.createElement('div');
-              prepared.style = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(108,196,166,0.95);color:white;padding:20px 40px;border-radius:12px;font-size:1.3em;font-weight:700;z-index:99999;box-shadow:0 4px 24px rgba(0,0,0,0.2);';
+              prepared.className = 'notification notification-success';
+              prepared.style.fontSize = '1.3em';
+              prepared.style.padding = '20px 40px';
               prepared.textContent = '✅ จัดเรียงเสร็จแล้ว!';
               document.body.appendChild(prepared);
               setTimeout(() => prepared.remove(), 1500);
@@ -422,11 +444,11 @@
                   <span style="font-size:1.05em;">📱 QR Code</span>
                 </label>
                 <label style="display:flex;align-items:center;padding:12px;margin:8px 0;background:#f5f5f5;border-radius:8px;cursor:pointer;">
-                  <input type="radio" name="method" value="พร้อมเพย์" style="margin-right:12px;width:20px;height:20px;"> 
+                  <input type="radio" name="method" value="พร้อมเพย์" required style="margin-right:12px;width:20px;height:20px;"> 
                   <span style="font-size:1.05em;">💳 พร้อมเพย์</span>
                 </label>
                 <label style="display:flex;align-items:center;padding:12px;margin:8px 0;background:#f5f5f5;border-radius:8px;cursor:pointer;">
-                  <input type="radio" name="method" value="เงินสด" style="margin-right:12px;width:20px;height:20px;"> 
+                  <input type="radio" name="method" value="เงินสด" required style="margin-right:12px;width:20px;height:20px;"> 
                   <span style="font-size:1.05em;">💵 เงินสด</span>
                 </label>
                 <div style="margin-top:20px;text-align:right;display:flex;gap:8px;">
@@ -443,7 +465,9 @@
         
         modal.querySelector('#payForm').onsubmit = async function(e){
           e.preventDefault();
-          const method = modal.querySelector('input[name=method]:checked').value;
+          const selected = modal.querySelector('input[name=method]:checked');
+          if(!selected) return;
+          const method = selected.value;
           
           showLoading();
           const res = await App.confirmPayment(orderId, method);
@@ -451,7 +475,7 @@
           
           // Show success message
           const success = document.createElement('div');
-          success.style = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(102,126,234,0.95);color:white;padding:24px 40px;border-radius:12px;font-size:1.2em;font-weight:700;z-index:99999;box-shadow:0 4px 24px rgba(0,0,0,0.3);text-align:center;';
+          success.className = 'notification notification-payment';
           success.innerHTML = `✅ รับเงินเรียบร้อย<br><small style="font-size:0.8em;opacity:0.9;">วิธี: ${method}</small>`;
           document.body.appendChild(success);
           

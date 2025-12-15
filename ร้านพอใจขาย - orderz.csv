@@ -1,3 +1,4 @@
 orderId,date,customerName,orders (JSON),totalAmount,paidAmount,payments (JSON),paid
-ORD-001,2025-11-20 10:00:00,สมชาย,"{""ITM-001"":{""qty"":2,""price"":40},""ITM-003"":{""qty"":1,""price"":20}}",100,100,"[{""date"":""2025-11-20T10:05:00"",""amount"":100,""method"":""PromptPay""}]",TRUE
-ORD-002,2025-11-20 10:00:00,สมหญิง,"{""ITM-001"":{""qty"":2,""price"":40},""ITM-003"":{""qty"":1,""price"":20}}",100,400,,FALSE
+ORD-001,2025-12-15 10:00:00,สมชาย,"{""ITM-001"":{""qty"":2,""price"":40},""ITM-003"":{""qty"":1,""price"":20}}",100,100,"[{""date"":""2025-12-15T10:05:00"",""amount"":100,""method"":""PromptPay""}]",TRUE
+ORD-002,2025-12-15 10:30:00,สมหญิง,"{""ITM-001"":{""qty"":2,""price"":40},""ITM-003"":{""qty"":1,""price"":20}}",100,0,,FALSE
+ORD-003,2025-12-15 11:00:00,นายทดสอบ,"{""ITM-002"":{""qty"":3,""price"":35},""ITM-004"":{""qty"":2,""price"":15}}",135,0,,FALSE

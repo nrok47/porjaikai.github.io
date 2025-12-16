@@ -61,14 +61,14 @@ body {
 	color: #222;
 }
 .container {
-	max-width: 980px;
+	max-width: 1400px;
 	margin: 24px auto;
 	padding: 0 8px;
 }
 .card {
 	background: #fffefc;
 	border-radius: 12px;
-	padding: 14px;
+	padding: 20px;
 	margin-bottom: 18px;
 	box-shadow: 0 6px 24px rgba(99, 102, 241, 0.06);
 }

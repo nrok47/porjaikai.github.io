@@ -21,6 +21,23 @@
           <label>เลือกวันที่: <input type="date" id="filterDate"></label>
           <button id="applyFilter">กรอง</button>
           <button id="todayBtn">วันนี้</button>
+          <label>เรียงตาม:
+            <select id="sortBy" style="min-width:150px;">
+              <option value="">-- ไม่เรียง --</option>
+              <option value="orderId">Order ID</option>
+              <option value="date">วันที่</option>
+              <option value="customerName">ชื่อลูกค้า</option>
+              <option value="totalAmount">ยอดรวม</option>
+              <option value="sending_status">สถานะการส่ง</option>
+              <option value="place_sent">สถานที่ส่ง</option>
+            </select>
+          </label>
+          <label style="margin-left:-8px;">
+            <select id="sortOrder" style="min-width:100px;">
+              <option value="asc">น้อย → มาก</option>
+              <option value="desc">มาก → น้อย</option>
+            </select>
+          </label>
         </div>
       </section>
       <div id="summary" class="card">
@@ -30,8 +47,31 @@
 
       <section class="card">
         <h2>รายการสั่งซื้อ</h2>
-        <div style="overflow:auto">
-          <table id="ordersTable">
+        <div style="overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch;">
+          <table id="ordersTable" style="width:100%;min-width:1200px;border-collapse:collapse;">
+            <style>
+              #ordersTable th, #ordersTable td {
+                padding: 10px 8px;
+                font-size: 0.95em;
+                border: 1px solid #ddd;
+                text-align: center;
+              }
+              #ordersTable th {
+                background: #fafafa;
+                font-weight: 600;
+              }
+              #ordersTable td {
+                background: #fff;
+              }
+              #ordersTable tr:hover td {
+                background: #fafafa;
+              }
+              #ordersTable select {
+                padding: 6px;
+                font-size: 0.9em;
+                min-width: 100px;
+              }
+            </style>
             <thead>
               <tr id="ordersHeader">
                 <!-- header rebuilt by script -->
@@ -71,6 +111,8 @@
         document.getElementById('filterDate').value = iso;
         document.getElementById('applyFilter').onclick = async ()=>{ showLoading(); await renderOrders(); hideLoading(); };
         document.getElementById('todayBtn').onclick = async ()=>{ document.getElementById('filterDate').value = iso; showLoading(); await renderOrders(); hideLoading(); };
+        document.getElementById('sortBy').onchange = async ()=>{ showLoading(); await renderOrders(); hideLoading(); };
+        document.getElementById('sortOrder').onchange = async ()=>{ showLoading(); await renderOrders(); hideLoading(); };
         await renderOrders();
         hideLoading();
       }
@@ -79,9 +121,28 @@
 
       async function renderOrders(){
         const filterDate = document.getElementById('filterDate').value || new Date().toISOString().slice(0,10);
-        const orders = await App.listOrders();
+        let orders = await App.listOrders();
         const tbody = document.querySelector('#ordersTable tbody');
         tbody.innerHTML = '';
+
+        // Apply sorting from dropdown
+        const sortBy = document.getElementById('sortBy').value;
+        const sortOrder = document.getElementById('sortOrder').value;
+        if(sortBy){
+          orders.sort((a, b)=>{
+            let aVal = a[sortBy], bVal = b[sortBy];
+            // Handle numeric comparisons
+            if(sortBy === 'totalAmount' || sortBy === 'paidAmount'){
+              aVal = Number(aVal||0);
+              bVal = Number(bVal||0);
+            }
+            if(typeof aVal === 'string') aVal = (aVal||'').toLowerCase();
+            if(typeof bVal === 'string') bVal = (bVal||'').toLowerCase();
+            if(aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+            if(aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+            return 0;
+          });
+        }
 
         // Rebuild header
         const headerRow = document.getElementById('ordersHeader');

@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>จัดเรียงออเดอร์ — ร้านพอใจขาย</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <style>
+      .prepare-container {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      .order-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border-left: 4px solid #6cc4a6;
+      }
+      .order-card.completed {
+        border-left-color: #90ee90;
+        opacity: 0.7;
+      }
+      .order-card.paid {
+        border-left-color: #ffd700;
+      }
+      .order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #f0f0f0;
+      }
+      .order-id {
+        font-size: 1.2em;
+        font-weight: 700;
+        color: #333;
+      }
+      .customer-name {
+        font-size: 1.1em;
+        color: #555;
+        margin-top: 4px;
+      }
+      .order-status {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .status-badge {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.85em;
+        font-weight: 600;
+      }
+      .status-unpaid {
+        background: #ffebee;
+        color: #c62828;
+      }
+      .status-paid {
+        background: #e8f5e9;
+        color: #2e7d32;
+      }
+      .status-prepared {
+        background: #e3f2fd;
+        color: #1565c0;
+      }
+      .item-list {
+        margin: 12px 0;
+      }
+      .item-row {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        margin: 6px 0;
+        background: #fafafa;
+        border-radius: 8px;
+        transition: all 0.2s;
+      }
+      .item-row.checked {
+        background: #e8f5e9;
+        text-decoration: line-through;
+        opacity: 0.7;
+      }
+      .item-checkbox {
+        width: 24px;
+        height: 24px;
+        margin-right: 12px;
+        cursor: pointer;
+        accent-color: #6cc4a6;
+      }
+      .item-details {
+        flex: 1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .item-name {
+        font-weight: 600;
+        font-size: 1.05em;
+      }
+      .item-qty {
+        background: #6cc4a6;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 8px;
+        font-weight: 600;
+        margin-left: 8px;
+      }
+      .order-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+        flex-wrap: wrap;
+      }
+      .btn-payment {
+        flex: 1;
+        min-width: 140px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 10px;
+        font-size: 1em;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+      }
+      .btn-complete {
+        flex: 1;
+        min-width: 140px;
+        background: linear-gradient(135deg, #6cc4a6 0%, #5ab591 100%);
+      }
+      .total-amount {
+        font-size: 1.3em;
+        font-weight: 700;
+        color: #333;
+        margin-top: 8px;
+        text-align: right;
+      }
+      .filter-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+        background: white;
+        padding: 12px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        flex-wrap: wrap;
+      }
+      .filter-tab {
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 2px solid #e0e0e0;
+        background: white;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+      }
+      .filter-tab.active {
+        background: #6cc4a6;
+        color: white;
+        border-color: #6cc4a6;
+      }
+      .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #999;
+      }
+      @media (max-width: 600px) {
+        .order-header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .order-status {
+          margin-top: 8px;
+        }
+        .item-details {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .item-qty {
+          margin-left: 0;
+          margin-top: 4px;
+        }
+        .btn-payment, .btn-complete {
+          min-width: 100%;
+        }
+      }
+      .notification {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        padding: 24px 40px;
+        border-radius: 12px;
+        font-size: 1.2em;
+        font-weight: 700;
+        z-index: 99999;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+        text-align: center;
+      }
+      .notification-success {
+        background: rgba(108,196,166,0.95);
+      }
+      .notification-payment {
+        background: rgba(102,126,234,0.95);
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navmenu">
+      <a href="index.html" class="navitem">รายงาน</a>
+      <a href="order.html" class="navitem">สั่งซื้อสินค้า</a>
+      <a href="prepare.html" class="navitem active">จัดเรียงออเดอร์</a>
+      <a href="seller.html" class="navitem">สต็อกสินค้า</a>
+    </nav>
+    <div id="loadingBanner" class="loading-banner">รอโหลดสักครู่เด้อ</div>
+    <main class="container prepare-container">
+      <h1>จัดเรียงออเดอร์และเก็บเงิน</h1>
+      
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all">ทั้งหมด</button>
+        <button class="filter-tab" data-filter="unprepared">ยังไม่จัด</button>
+        <button class="filter-tab" data-filter="unpaid">ยังไม่จ่าย</button>
+        <button class="filter-tab" data-filter="completed">เสร็จแล้ว</button>
+      </div>
+
+      <div id="ordersList"></div>
+    </main>
+
+    <script src="assets/app.js"></script>
+    <script>
+      let sellers = [];
+      let orders = [];
+      let orderStates = {}; // track preparation state: { orderId: { itemId: checked, ... } }
+      let currentFilter = 'all';
+
+      function showLoading(){ const b = document.getElementById('loadingBanner'); if(b) b.style.display='block'; }
+      function hideLoading(){ const b = document.getElementById('loadingBanner'); if(b) b.style.display='none'; }
+
+      async function init(){
+        showLoading();
+        sellers = await App.listSellers();
+        await loadOrders();
+        
+        // Load saved states from localStorage
+        const saved = localStorage.getItem('orderStates');
+        if(saved) {
+          try {
+            orderStates = JSON.parse(saved);
+          } catch(e) {}
+        }
+        
+        renderOrders();
+        hideLoading();
+        
+        // Setup filter tabs
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+          tab.onclick = () => {
+            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentFilter = tab.dataset.filter;
+            renderOrders();
+          };
+        });
+      }
+
+      async function loadOrders(){
+        orders = await App.listOrders();
+        // Filter to today's orders only
+        const today = new Date().toISOString().slice(0,10);
+        orders = orders.filter(o => {
+          const od = (o.date||'').slice(0,10);
+          return od === today;
+        });
+        // Sort by date (newest first)
+        orders.sort((a,b) => new Date(b.date) - new Date(a.date));
+      }
+
+      function getSellerById(itemId) {
+        return sellers.find(s => s.itemId === itemId) || {name: itemId, price: 0};
+      }
+
+      function isOrderPrepared(orderId) {
+        const state = orderStates[orderId];
+        if(!state) return false;
+        const orderItems = orders.find(o => o.orderId === orderId)?.orders || {};
+        const itemIds = Object.keys(orderItems);
+        return itemIds.every(id => state[id]);
+      }
+
+      function isOrderPaid(order) {
+        const paid = Number(order.paidAmount||0);
+        return order.paid && paid >= (Number(order.totalAmount)||0);
+      }
+
+      function filterOrder(order) {
+        const prepared = isOrderPrepared(order.orderId);
+        const paid = isOrderPaid(order);
+        
+        if(currentFilter === 'all') return true;
+        if(currentFilter === 'unprepared') return !prepared;
+        if(currentFilter === 'unpaid') return !paid;
+        if(currentFilter === 'completed') return prepared && paid;
+        return true;
+      }
+
+      function renderOrders(){
+        const container = document.getElementById('ordersList');
+        const filtered = orders.filter(filterOrder);
+        
+        if(filtered.length === 0) {
+          container.innerHTML = '<div class="empty-state"><h3>ไม่มีรายการ</h3><p>ไม่มีออเดอร์ที่ตรงกับตัวกรองนี้</p></div>';
+          return;
+        }
+        
+        container.innerHTML = '';
+        
+        filtered.forEach(order => {
+          const orderItems = order.orders || order['orders (JSON)'] || {};
+          const prepared = isOrderPrepared(order.orderId);
+          const paid = isOrderPaid(order);
+          
+          const card = document.createElement('div');
+          card.className = 'order-card';
+          if(prepared && paid) card.classList.add('completed');
+          else if(paid) card.classList.add('paid');
+          
+          let statusHtml = '';
+          if(!paid) {
+            statusHtml += '<span class="status-badge status-unpaid">ยังไม่จ่าย</span>';
+          } else {
+            statusHtml += '<span class="status-badge status-paid">จ่ายแล้ว</span>';
+          }
+          if(prepared) {
+            statusHtml += '<span class="status-badge status-prepared">จัดเรียงแล้ว</span>';
+          }
+          
+          let itemsHtml = '';
+          Object.entries(orderItems).forEach(([itemId, details]) => {
+            const seller = getSellerById(itemId);
+            const qty = details.qty || details.quantity || 0;
+            const checked = orderStates[order.orderId]?.[itemId] || false;
+            
+            itemsHtml += `
+              <div class="item-row ${checked ? 'checked' : ''}">
+                <input type="checkbox" class="item-checkbox" 
+                  data-order="${order.orderId}" 
+                  data-item="${itemId}"
+                  ${checked ? 'checked' : ''}>
+                <div class="item-details">
+                  <span class="item-name">${seller.name}</span>
+                  <span class="item-qty">x${qty}</span>
+                </div>
+              </div>
+            `;
+          });
+          
+          let actionsHtml = '';
+          if(!paid) {
+            actionsHtml = `<button class="btn-payment" onclick="showPaymentModal('${order.orderId}')">💰 เก็บเงิน ${order.totalAmount}฿</button>`;
+          }
+          
+          card.innerHTML = `
+            <div class="order-header">
+              <div>
+                <div class="order-id">${order.orderId}</div>
+                <div class="customer-name">👤 ${order.customerName}</div>
+              </div>
+              <div class="order-status">
+                ${statusHtml}
+              </div>
+            </div>
+            <div class="item-list">
+              ${itemsHtml}
+            </div>
+            <div class="total-amount">รวม: ${order.totalAmount} ฿</div>
+            ${actionsHtml ? `<div class="order-actions">${actionsHtml}</div>` : ''}
+          `;
+          
+          container.appendChild(card);
+        });
+        
+        // Attach checkbox listeners
+        document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+          checkbox.onchange = function() {
+            const orderId = this.dataset.order;
+            const itemId = this.dataset.item;
+            
+            if(!orderStates[orderId]) orderStates[orderId] = {};
+            orderStates[orderId][itemId] = this.checked;
+            
+            // Save to localStorage
+            localStorage.setItem('orderStates', JSON.stringify(orderStates));
+            
+            // Update UI
+            const row = this.closest('.item-row');
+            if(this.checked) {
+              row.classList.add('checked');
+            } else {
+              row.classList.remove('checked');
+            }
+            
+            // Check if all items are prepared
+            if(isOrderPrepared(orderId)) {
+              const card = this.closest('.order-card');
+              // Show visual feedback
+              const prepared = document.createElement('div');
+              prepared.className = 'notification notification-success';
+              prepared.style.fontSize = '1.3em';
+              prepared.style.padding = '20px 40px';
+              prepared.textContent = '✅ จัดเรียงเสร็จแล้ว!';
+              document.body.appendChild(prepared);
+              setTimeout(() => prepared.remove(), 1500);
+              
+              // Refresh after animation
+              setTimeout(() => renderOrders(), 1500);
+            }
+          };
+        });
+      }
+
+      // Payment modal
+      function showPaymentModal(orderId){
+        const order = orders.find(o => o.orderId === orderId);
+        if(!order) return;
+        
+        let modal = document.getElementById('paymentModal');
+        if(!modal){
+          modal = document.createElement('div');
+          modal.id = 'paymentModal';
+          modal.style = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:9999;';
+          modal.innerHTML = `
+            <div style="background:#fff;padding:24px 32px;border-radius:16px;min-width:300px;max-width:90vw;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+              <h3 style="margin-top:0;color:#333;">เลือกวิธีการชำระเงิน</h3>
+              <p style="font-size:1.2em;font-weight:700;color:#667eea;margin:12px 0;">ยอดรวม: <span id="modalAmount"></span> ฿</p>
+              <form id="payForm">
+                <label style="display:flex;align-items:center;padding:12px;margin:8px 0;background:#f5f5f5;border-radius:8px;cursor:pointer;">
+                  <input type="radio" name="method" value="QR Code" required style="margin-right:12px;width:20px;height:20px;"> 
+                  <span style="font-size:1.05em;">📱 QR Code</span>
+                </label>
+                <label style="display:flex;align-items:center;padding:12px;margin:8px 0;background:#f5f5f5;border-radius:8px;cursor:pointer;">
+                  <input type="radio" name="method" value="พร้อมเพย์" required style="margin-right:12px;width:20px;height:20px;"> 
+                  <span style="font-size:1.05em;">💳 พร้อมเพย์</span>
+                </label>
+                <label style="display:flex;align-items:center;padding:12px;margin:8px 0;background:#f5f5f5;border-radius:8px;cursor:pointer;">
+                  <input type="radio" name="method" value="เงินสด" required style="margin-right:12px;width:20px;height:20px;"> 
+                  <span style="font-size:1.05em;">💵 เงินสด</span>
+                </label>
+                <div style="margin-top:20px;text-align:right;display:flex;gap:8px;">
+                  <button type="button" onclick="document.getElementById('paymentModal').remove()" style="flex:1;background:#e0e0e0;color:#333;">ยกเลิก</button>
+                  <button type="submit" style="flex:1;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);">✓ ยืนยันชำระเงิน</button>
+                </div>
+              </form>
+            </div>
+          `;
+          document.body.appendChild(modal);
+        }
+        
+        document.getElementById('modalAmount').textContent = order.totalAmount;
+        
+        modal.querySelector('#payForm').onsubmit = async function(e){
+          e.preventDefault();
+          const selected = modal.querySelector('input[name=method]:checked');
+          if(!selected) return;
+          const method = selected.value;
+          
+          showLoading();
+          const res = await App.confirmPayment(orderId, method);
+          hideLoading();
+          
+          // Show success message
+          const success = document.createElement('div');
+          success.className = 'notification notification-payment';
+          success.innerHTML = `✅ รับเงินเรียบร้อย<br><small style="font-size:0.8em;opacity:0.9;">วิธี: ${method}</small>`;
+          document.body.appendChild(success);
+          
+          modal.remove();
+          
+          setTimeout(() => {
+            success.remove();
+            loadOrders().then(() => renderOrders());
+          }, 1500);
+        };
+      }
+
+      init();
+    </script>
+  </body>
+</html>

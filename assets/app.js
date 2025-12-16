@@ -5,20 +5,28 @@ const App = (function(){
   const SHEET_ID = '1DWA2VlKwmYbvmxTmXUQJQOTalxVOPmx5lAqq8EFtQ0w';
 
   async function fetchGet(params){
-    const url = new URL(BASE_URL);
-    params = Object.assign({sheetId: SHEET_ID}, params||{});
-    url.search = new URLSearchParams(params);
-    const res = await fetch(url.toString());
-    return res.json().catch(()=>null);
+    try {
+      const url = new URL(BASE_URL);
+      params = Object.assign({sheetId: SHEET_ID}, params||{});
+      url.search = new URLSearchParams(params);
+      const res = await fetch(url.toString());
+      return res.json().catch(()=>null);
+    } catch(e) {
+      return null;
+    }
   }
 
   async function fetchPost(body){
-    const res = await fetch(BASE_URL, {
-      method: 'POST',
-      headers: {'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify(Object.assign({sheetId: SHEET_ID}, body))
-    });
-    return res.json().catch(()=>null);
+    try {
+      const res = await fetch(BASE_URL, {
+        method: 'POST',
+        headers: {'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify(Object.assign({sheetId: SHEET_ID}, body))
+      });
+      return res.json().catch(()=>null);
+    } catch(e) {
+      return null;
+    }
   }
 
   // CSV fallback: try to load local CSV if script returns null
@@ -47,12 +55,19 @@ const App = (function(){
   }
 
   function splitCSV(line){
-    // naive CSV splitter that handles quoted fields with commas
+    // CSV splitter that handles quoted fields with commas and escaped quotes
     const res = [];
     let cur='';
     let inQ=false;
     for(let i=0;i<line.length;i++){
       const ch=line[i];
+      const nextCh=line[i+1];
+      // Handle escaped quotes: "" becomes "
+      if(ch==='"' && nextCh==='"' && inQ){ 
+        cur += '"'; 
+        i++; // skip next quote
+        continue; 
+      }
       if(ch==='"') { inQ=!inQ; continue; }
       if(ch===',' && !inQ){ res.push(cur); cur=''; continue; }
       cur += ch;
